@@ -18,13 +18,7 @@ int main(int argc, char* argv[]) {
     int a = getaddrinfo(argv[1], argv[2], NULL, &info);
 
     if (a != 0) {
-        if (a != EAI_SYSTEM) {
-            fprintf(stderr, "Error getaddrinfo: %s\n", gai_strerror(a));
-        }
-        else
-        {
-            perror("getaddrinfo");
-        }
+        fprintf(stderr, "Error getaddrinfo: %s\n", gai_strerror(a));
         return -1;
     }
 
