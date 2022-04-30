@@ -54,15 +54,34 @@ void ChatServer::do_messages()
     while (true)
     {
         /*
-            *NOTA: los clientes están definidos con "smart pointers", es necesario
-            * crear un unique_ptr con el objeto socket recibido y usar std::move
-            * para añadirlo al vector
-            * */
-
-            //Recibir Mensajes en y en función del tipo de mensaje
-            // - LOGIN: Añadir al vector clients
-            // - LOGOUT: Eliminar del vector clients
-            // - MESSAGE: Reenviar el mensaje a todos los clientes (menos el emisor)
+         * NOTA: los clientes están definidos con "smart pointers", es necesario
+         * crear un unique_ptr con el objeto socket recibido y usar std::move
+         * para añadirlo al vector
+         */
+        Socket* clientSd;
+        ChatMessage msg;
+        socket.recv(msg, clientSd);
+        //Recibir Mensajes en y en función del tipo de mensaje
+        // - LOGIN: Añadir al vector clients
+        // - LOGOUT: Eliminar del vector clients
+        // - MESSAGE: Reenviar el mensaje a todos los clientes (menos el emisor)
+        if (msg.type == ChatMessage::MessageType::LOGIN) {
+            std::cout << msg.nick << " se ha unido\n";
+            clients.push_back(std::unique_ptr<Socket>(std::move(clientSd)));
+        }
+        else if (msg.type == ChatMessage::MessageType::LOGOUT) {
+            std::cout << msg.nick << " se ha desconectado\n";
+            auto it = clients.begin();
+            while (it != clients.end() && !(*(*it).get() == *clientSd)) it++;
+            clients.erase(it);
+        }
+        else if (msg.type == ChatMessage::MessageType::MESSAGE) {
+            std::cout << msg.nick << " ha enviado un mensaje\n";
+            for (int i = 0; i < clients.size(); ++i) {
+                if (!(*(clients[i].get()) == *clientSd))
+                    socket.send(msg, (*clients[i].get()));
+            }
+        }
     }
 }
 
