@@ -101,6 +101,12 @@ void ChatClient::login()
 void ChatClient::logout()
 {
     // Completar
+    std::string msg;
+
+    ChatMessage em(nick, msg);
+    em.type = ChatMessage::LOGOUT;
+
+    socket.send(em, socket);
 }
 
 void ChatClient::input_thread()
@@ -109,6 +115,15 @@ void ChatClient::input_thread()
     {
         // Leer stdin con std::getline
         // Enviar al servidor usando socket
+        std::string msg;
+        std::getline(std::cin, msg);
+        if (msg == "q") {
+            logout();
+            break;
+        }
+        ChatMessage chatMsg(nick, msg);
+        chatMsg.type = ChatMessage::MessageType::MESSAGE;
+        socket.send(chatMsg, socket);
     }
 }
 
@@ -118,5 +133,8 @@ void ChatClient::net_thread()
     {
         //Recibir Mensajes de red
         //Mostrar en pantalla el mensaje de la forma "nick: mensaje"
+        ChatMessage chatMsg;
+        socket.recv(chatMsg);
+        std::cout << chatMsg.nick << ": " << chatMsg.message << "\n";
     }
 }
