@@ -11,37 +11,32 @@ void ChatMessage::to_bin()
     memset(_data, 0, MESSAGE_SIZE);
 
     //Serializar los campos type, nick y message en el buffer _data
-    char* punteroBuffer = _data;
-
-    memcpy(punteroBuffer, &type, sizeof(uint8_t));
-    punteroBuffer += sizeof(uint8_t);
-
-    memcpy(punteroBuffer, nick.c_str(), 8 * sizeof(char));
-    punteroBuffer += 8 * sizeof(char);
-
-    memcpy(punteroBuffer, message.c_str(), 80 * sizeof(char));
+    char* datos = _data;
+    memcpy(datos, &type, sizeof(uint8_t));
+    datos += sizeof(uint8_t);
+    memcpy(datos, nick.c_str(), 10 * sizeof(char));
+    datos += 10 * sizeof(char);
+    memcpy(datos, message.c_str(), 80 * sizeof(char));
 }
 
-int ChatMessage::from_bin(char* bobj)
+int ChatMessage::from_bin(char * bobj)
 {
     alloc_data(MESSAGE_SIZE);
 
-    memcpy(static_cast<void>(_data), _obj, MESSAGE_SIZE);
+    memcpy(static_cast<void *>(_data), bobj, MESSAGE_SIZE);
+
+    char datosNick [10];
+    char datosMensaje [80];
 
     //Reconstruir la clase usando el buffer _data
-    char punteroBuffer = _data;
-
-    memcpy(&type, punteroBuffer, sizeof(uint8_t));
-    punteroBuffer += sizeof(uint8_t);
-
-    char nombre[8];
-    mempcpy(&nombre, punteroBuffer, 8 * sizeof(char));
-    punteroBuffer += 8 * sizeof(char);
-    nick = nombre;
-
-    char mensaje[80];
-    memcpy(&mensaje, punteroBuffer, 80 * sizeof(char));
-    message = mensaje;
+    char* datos = _data;
+    memcpy(&type, datos, sizeof(uint8_t));
+    datos += sizeof(uint8_t);
+    memcpy(&datosNick, datos, 10 * sizeof(char));
+    datos += 10 * sizeof(char);
+    memcpy(&datosMensaje, datos, 80 * sizeof(char));
+    nick = datosNick;
+    message = datosMensaje;
 
     return 0;
 }

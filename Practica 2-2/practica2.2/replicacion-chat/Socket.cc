@@ -18,7 +18,7 @@ Socket::Socket(const char * _direccion, const char * _puerto):sd(-1)
 
     int a = getaddrinfo(_direccion, _puerto, &hints, &res);
 
-    if(errMng != 0){
+    if(a != 0){
         perror("getaddrinfo\n");
         return;
     }
