@@ -256,6 +256,18 @@ void ChatServer::do_messages()
 
         }
 
+        else if (msg.type == ChatMessage::MessageType::TRY) {
+
+            std::cout << msg.nick << " ha intentado la letra " << msg.message << "\n";
+
+            for (int i = 0; i < clients.size(); ++i) {
+
+                socket.send(msg, (*clients[i].get()));
+
+            }
+
+        }
+
     }
 
 }
@@ -326,17 +338,21 @@ void ChatClient::input_thread()
 
         std::getline(std::cin, msg);
 
-        if (msg == "q") {
+        while (msg != "exit" && msg.length() > 1)
 
-            logout();
+        {
 
-            break;
+            std::cout << "Escriba solo una letra\n";
+
+            std::getline(std::cin, msg);
 
         }
 
         ChatMessage chatMsg(nick, msg);
 
-        chatMsg.type = ChatMessage::MessageType::MESSAGE;
+        if (msg.length() == 1) chatMsg.type = ChatMessage::MessageType::TRY;
+
+        else chatMsg.type = ChatMessage::MessageType::LOGOUT;
 
         socket.send(chatMsg, socket);
 
@@ -362,7 +378,35 @@ void ChatClient::net_thread()
 
         socket.recv(chatMsg);
 
+
+
+        if (chatMsg.type == ChatMessage::MessageType::TRY)
+
+        {
+
+            usadas.push_back(chatMsg.message);
+
+            std::cout << "\n\nSe ha intentado la letra " << chatMsg.message << "\n";
+
+        }
+
+
+
         std::cout << "Palabra Oculta: " << chatMsg.message << "\n";
+
+        std::cout << "Letras Usadas: ";
+
+        for (std::list<std::string>::iterator it = usadas.begin();
+
+            it != usadas.end(); ++it)
+
+        {
+
+            std::cout << *it << " ";
+
+        }
+
+        std::cout << "\n";
 
     }
 
