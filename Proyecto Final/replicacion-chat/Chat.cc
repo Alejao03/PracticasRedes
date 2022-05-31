@@ -330,8 +330,6 @@ void ChatServer::do_messages()
 
                 std::string palabra = buff;
 
-                // std::cout << "TAM: " + palabra.size();
-
 
 
 
@@ -352,6 +350,10 @@ void ChatServer::do_messages()
 
                 ocultas = oculta;
 
+                letrasOcultas = (tam - 1);
+
+                std::cout << letrasOcultas << "\n";
+
 
 
                 // std::cout << "Oculta: " << oculta << "\n";
@@ -359,6 +361,8 @@ void ChatServer::do_messages()
                 palabras = palabra;
 
                 std::cout << palabras;
+
+                // std::cout << "TAM: " << palabras.size();
 
 
 
@@ -542,6 +546,72 @@ void ChatServer::do_messages()
 
 
 
+                    //Comprobar si la letra es correcta
+
+                    bool acierto = false;
+
+                    for (int i = 0; i < palabras.length(); i++)
+
+                    {
+
+                        if (palabras[i] == msg.message[0])
+
+                        {
+
+                            ocultas[i] = palabras[i];
+
+                            acierto = true;
+
+                            letrasOcultas--;
+
+                        }
+
+                    }
+
+
+
+                    if (letrasOcultas <= 0)
+
+                    {
+
+                        for (int i = 0; i < clients.size(); ++i) {
+
+                            if ((*(clients[i].get()) == *clientSd))
+
+                            {
+
+                                msg.type = ChatMessage::MessageType::VICTORIA;
+
+                                msg.message = palabras;
+
+                                socket.send(msg, (*clients[i].get()));
+
+                            }
+
+                            else
+
+                            {
+
+                                msg.type = ChatMessage::MessageType::DERROTA;
+
+                                msg.message = palabras;
+
+                                if (jugador == 0) msg.nick = nicksClient[1];
+
+                                else msg.nick = nicksClient[0];
+
+                                socket.send(msg, (*clients[i].get()));
+
+                            }
+
+                        }
+
+                        return;
+
+                    }
+
+
+
                     msg.message = ocultas;
 
                     msg.type = ChatMessage::MessageType::OCULTA;
@@ -580,37 +650,79 @@ void ChatServer::do_messages()
 
                     //Cambiamos turno
 
-                    turno = !turno;
+                    if (!acierto)
+
+                    {
+
+                        turno = !turno;
 
 
 
-                    for (int i = 0; i < clients.size(); ++i) {
+                        for (int i = 0; i < clients.size(); ++i) {
 
-                        if (!(*(clients[i].get()) == *clientSd))
+                            if (!(*(clients[i].get()) == *clientSd))
 
-                        {
+                            {
 
-                            msg.type = ChatMessage::MessageType::TUTURNO;
+                                msg.type = ChatMessage::MessageType::TUTURNO;
 
-                            socket.send(msg, (*clients[i].get()));
+                                socket.send(msg, (*clients[i].get()));
 
-                        }
+                            }
 
-                        else
+                            else
 
-                        {
+                            {
 
-                            msg.type = ChatMessage::MessageType::SUTURNO;
+                                msg.type = ChatMessage::MessageType::SUTURNO;
 
-                            if (jugador == 0) msg.nick = nicksClient[1];
+                                if (jugador == 0) msg.nick = nicksClient[1];
 
-                            else msg.nick = nicksClient[0];
+                                else msg.nick = nicksClient[0];
 
-                            socket.send(msg, (*clients[i].get()));
+                                socket.send(msg, (*clients[i].get()));
+
+                            }
 
                         }
 
                     }
+
+                    else
+
+                    {
+
+                        for (int i = 0; i < clients.size(); ++i) {
+
+                            if ((*(clients[i].get()) == *clientSd))
+
+                            {
+
+                                msg.type = ChatMessage::MessageType::TUTURNO;
+
+                                socket.send(msg, (*clients[i].get()));
+
+                            }
+
+                            else
+
+                            {
+
+                                msg.type = ChatMessage::MessageType::SUTURNO;
+
+                                if (jugador == 0) msg.nick = nicksClient[1];
+
+                                else msg.nick = nicksClient[0];
+
+                                socket.send(msg, (*clients[i].get()));
+
+                            }
+
+                        }
+
+                    }
+
+
 
                 }
 
@@ -854,19 +966,17 @@ void ChatClient::net_thread()
 
             std::cout << "Palabra Oculta: " << chatMsg.message;
 
+        else if (chatMsg.type == ChatMessage::MessageType::VICTORIA)
 
+            std::cout << "Has ganado!!!\nLa palabra era " << chatMsg.message;
+
+        else if (chatMsg.type == ChatMessage::MessageType::DERROTA)
+
+            std::cout << "Has perdido :(\nLa palabra era " << chatMsg.message;
 
         // std::cout << "TERMINO MSG";
 
-
-
-
-
-
-
     }
-
-
 
 }
 
