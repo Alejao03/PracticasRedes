@@ -8,53 +8,25 @@
 
 
 
-
-
-
-
 // -----------------------------------------------------------------------------
 
-
-
 // -----------------------------------------------------------------------------
-
-
-
-
 
 
 
 void ChatMessage::to_bin()
 
-
-
 {
 
-
-
     alloc_data(MESSAGE_SIZE);
-
-
-
-
-
-
 
     memset(_data, 0, MESSAGE_SIZE);
 
 
 
-
-
-
-
     //Serializar los campos type, nick y message en el buffer _data
 
-
-
     char* datos = _data;
-
-
 
     memcpy(datos, &type, sizeof(uint8_t));
 
@@ -62,67 +34,35 @@ void ChatMessage::to_bin()
 
     datos += sizeof(uint8_t);
 
-
-
     memcpy(datos, nick.c_str(), 10 * sizeof(char));
 
 
 
     datos += 10 * sizeof(char);
 
-
-
     memcpy(datos, message.c_str(), 80 * sizeof(char));
-
-
 
 }
 
 
 
-
-
-
-
 int ChatMessage::from_bin(char* bobj)
-
-
 
 {
 
-
-
     alloc_data(MESSAGE_SIZE);
-
-
-
-
-
-
 
     memcpy(static_cast<void*>(_data), bobj, MESSAGE_SIZE);
 
 
 
-
-
-
-
     char datosNick[10];
-
-
 
     char datosMensaje[80];
 
 
 
-
-
-
-
     //Reconstruir la clase usando el buffer _data
-
-
 
     char* datos = _data;
 
@@ -130,15 +70,11 @@ int ChatMessage::from_bin(char* bobj)
 
     memcpy(&type, datos, sizeof(uint8_t));
 
-
-
     datos += sizeof(uint8_t);
 
 
 
     memcpy(&datosNick, datos, 10 * sizeof(char));
-
-
 
     datos += 10 * sizeof(char);
 
@@ -146,87 +82,35 @@ int ChatMessage::from_bin(char* bobj)
 
     memcpy(&datosMensaje, datos, 80 * sizeof(char));
 
-
-
     nick = datosNick;
-
-
 
     message = datosMensaje;
 
 
 
-
-
-
-
     return 0;
-
-
 
 }
 
 
 
-
-
-
-
 // -----------------------------------------------------------------------------
 
-
-
 // -----------------------------------------------------------------------------
-
-
-
-
 
 
 
 void ChatServer::do_messages()
 
-
-
 {
-
-
 
     while (true)
 
-
-
     {
-
-
-
-        /*
-
-
-
-         * NOTA: los clientes están definidos con "smart pointers", es necesario
-
-
-
-         * crear un unique_ptr con el objeto socket recibido y usar std::move
-
-
-
-         * para añadirlo al vector
-
-
-
-         */
-
-
 
         Socket* clientSd;
 
-
-
         ChatMessage msg;
-
-
 
         socket.recv(msg, clientSd);
 
@@ -238,13 +122,33 @@ void ChatServer::do_messages()
 
         // - LOGIN: Añadir al vector clients
 
-
-
         // - LOGOUT: Eliminar del vector clients
 
+        // - TRY: Intento de una letra (comprueba repetición, lista usadas, acierto...)
 
+        // - ERROR: Letra repetida
 
-        // - MESSAGE: Reenviar el mensaje a todos los clientes (menos el emisor)
+        // - USADAS: Mensaje con la lista de letras usadas
+
+        // - TUTURNO: Mensaje que indica que es tu turno
+
+        // - NOTURNO: Mensaje que sale al escribir cuando no es tu turno
+
+        // - SUTURNO: Mensaje que indica de quien es el turno
+
+        // - OCULTA: Muestra la palabra oculta (se va actualizando según acertamos letras)
+
+        // - VICTORIA: Mensaje de victoria
+
+        // - DERROTA: Mensaje de derrota (dice quien ha ganado)
+
+        // - START: Se empieza la partida (generamos palabra)
+
+        // - WAIT: Te conectas en medio de una partida (te quedas en espera)
+
+        // - LOBBY: Tras terminar partida, la lista de espera se añade en la lista clientes
+
+        // - NOSTART: La partida no esta iniciada
 
 
 
@@ -358,15 +262,11 @@ void ChatServer::do_messages()
 
 
 
-            // char buff2 [1024];
-
-
-
             FILE* f = fopen("diccionario.dat", "r");
 
             srand(time(NULL));
 
-            int a = rand() % 60;
+            int a = rand() % 100;
 
             int vuelta = 0;
 
@@ -438,8 +338,6 @@ void ChatServer::do_messages()
 
 
 
-            // std::cout << "B";
-
             for (int i = 0; i < oculta.size(); i++)
 
             {
@@ -450,23 +348,11 @@ void ChatServer::do_messages()
 
 
 
-            // for (int i = 0; i < clients.size(); ++i) {
-
-            //     // std::cout << "A";
-
-            //     socket.send(msg, (*clients[i].get()));
-
-            // }
-
-
-
             for (int i = 0; i < clients.size(); ++i) {
 
                 msg.message = ocultas;
 
                 msg.type = ChatMessage::MessageType::OCULTA;
-
-                // std::cout << "A";
 
                 socket.send(msg, (*clients[i].get()));
 
@@ -491,8 +377,6 @@ void ChatServer::do_messages()
                     msg.nick = nicksClient[turno];
 
                 }
-
-                // std::cout << "A";
 
                 socket.send(msg, (*clients[i].get()));
 
@@ -524,10 +408,6 @@ void ChatServer::do_messages()
 
 
 
-            // std::cout << "oculta tAM: " << sizeof(oculta)<<"\n";
-
-
-
             fclose(f);
 
         }
@@ -536,29 +416,129 @@ void ChatServer::do_messages()
 
             std::cout << msg.nick << " se ha desconectado\n";
 
+
+
+            int jugador;
+
+            for (int i = 0; i < nicksClient.size(); i++)
+
+            {
+
+                if (msg.nick == nicksClient[i]) jugador = i;
+
+            }
+
+
+
             auto it = clients.begin();
 
+            auto it2 = nicksClient.begin();
+
+            // 0 1 x
+
+            while (it != clients.end() && !(*(*it).get() == *clientSd))
+
+            {
+
+                it++;
+
+                it2++;
+
+            }
 
 
-            while (it != clients.end() && !(*(*it).get() == *clientSd)) it++;
 
-            clients.erase(it);
+            if (it == clients.end()) //El que sale, esta en sala de espera
 
-        }
+            {
 
-        else if (msg.type == ChatMessage::MessageType::MESSAGE) {
+                // 0
 
-            std::cout << msg.nick << " ha enviado un mensaje\n";
+                it = waiting.begin();
 
-            std::cout << msg.nick << " ha escrito " << msg.message << "\n";
+                it2 = nicksLobby.begin();
+
+                while (it != waiting.end() && !(*(*it).get() == *clientSd))
+
+                {
+
+                    it++;
+
+                    it2++;
+
+                }
 
 
 
-            for (int i = 0; i < clients.size(); ++i) {
+                std::cout << "borrando lista de espera\n";
 
-                if (!(*(clients[i].get()) == *clientSd))
+                waiting.erase(it);
 
-                    socket.send(msg, (*clients[i].get()));
+                nicksLobby.erase(it2);
+
+            }
+
+            else //El que sale esta en el juego
+
+            {
+
+                if (turno == jugador)
+
+                {
+
+                    int pos = jugador;
+
+                    jugador++;
+
+                    if (jugador >= clients.size())
+
+                        jugador -= clients.size();
+
+
+
+                    for (int i = 0; i < clients.size(); ++i) {
+
+                        if (i == jugador)
+
+                        {
+
+                            msg.type = ChatMessage::MessageType::TUTURNO;
+
+                            socket.send(msg, (*clients[i].get()));
+
+                        }
+
+                        else if (i != jugador && i != pos)
+
+                        {
+
+                            msg.type = ChatMessage::MessageType::SUTURNO;
+
+                            msg.nick = nicksClient[jugador];
+
+                            socket.send(msg, (*clients[i].get()));
+
+                        }
+
+                    }
+
+                }
+
+                std::cout << "borrando lista de clientes\n";
+
+                clients.erase(it);
+
+                nicksClient.erase(it2);
+
+
+
+                int a = clients.size();
+
+                msg.message = std::to_string(a);
+
+                msg.type = ChatMessage::MessageType::LOGIN;
+
+                socket.send(msg, (*clients[0].get()));
 
             }
 
@@ -598,8 +578,6 @@ void ChatServer::do_messages()
 
                     {
 
-                        std::cout << "FOR\n";
-
                         if (*it == msg.message)
 
                         {
@@ -609,8 +587,6 @@ void ChatServer::do_messages()
                         }
 
                     }
-
-                    std::cout << "A\n";
 
                     if (msg.type != ChatMessage::MessageType::ERROR)
 
@@ -647,8 +623,6 @@ void ChatServer::do_messages()
                             }
 
                         }
-
-                        std::cout << "B\n";
 
 
 
@@ -716,8 +690,6 @@ void ChatServer::do_messages()
 
                             }
 
-                            std::cout << "C\n";
-
 
 
                             std::string a;
@@ -742,8 +714,6 @@ void ChatServer::do_messages()
 
                             }
 
-                            std::cout << "D\n";
-
 
 
                             //Cambiamos turno
@@ -751,8 +721,6 @@ void ChatServer::do_messages()
                             if (!acierto)
 
                             {
-
-                                std::cout << "PETA\n";
 
                                 jugador++;
 
@@ -888,25 +856,13 @@ void ChatServer::do_messages()
 
 
 
-
-
-
-
 // -----------------------------------------------------------------------------
 
-
-
 // -----------------------------------------------------------------------------
-
-
-
-
 
 
 
 void ChatClient::login()
-
-
 
 {
 
@@ -922,19 +878,11 @@ void ChatClient::login()
 
     socket.send(em, socket);
 
-    // std::cout << "ME HE LOGEADO2";
-
 }
 
 
 
-
-
-
-
 void ChatClient::logout()
-
-
 
 {
 
@@ -956,13 +904,7 @@ void ChatClient::logout()
 
 
 
-
-
-
-
 void ChatClient::input_thread()
-
-
 
 {
 
@@ -980,7 +922,7 @@ void ChatClient::input_thread()
 
 
 
-        while (msg != "SI" && msg.length() > 1)
+        while (msg != "SI" && msg != "exit" && msg.length() > 1)
 
         {
 
@@ -998,6 +940,8 @@ void ChatClient::input_thread()
 
         else if (msg == "SI") chatMsg.type = ChatMessage::MessageType::START;
 
+        else chatMsg.type = ChatMessage::MessageType::LOGOUT;
+
         socket.send(chatMsg, socket);
 
     }
@@ -1006,21 +950,13 @@ void ChatClient::input_thread()
 
 
 
-
-
-
-
 void ChatClient::net_thread()
-
-
 
 {
 
     while (true)
 
     {
-
-        // std::cout << "RUBICOCK";
 
         //Recibir Mensajes de red
 
@@ -1032,63 +968,100 @@ void ChatClient::net_thread()
 
 
 
-        if (chatMsg.type == ChatMessage::MessageType::TRY)
+        switch (chatMsg.type)
 
-            std::cout << "\n\nSe ha intentado la letra " << chatMsg.message << "\n";
+        {
 
-        else if (chatMsg.type == ChatMessage::MessageType::PALABRA)
+        case ChatMessage::MessageType::TRY:
+
+            std::cout << "\x1B[2J\x1B[H"; //Limpia consola (Gracias lolito)
+
+            std::cout << "Se ha intentado la letra " << chatMsg.message << "\n";
+
+            break;
+
+        case ChatMessage::MessageType::PALABRA:
 
             std::cout << "Palabra Oculta: " << chatMsg.message;
 
-        else if (chatMsg.type == ChatMessage::MessageType::USADAS)
+            break;
+
+        case ChatMessage::MessageType::USADAS:
 
             std::cout << "Letras Usadas: " << chatMsg.message << "\n";
 
-        else if (chatMsg.type == ChatMessage::MessageType::LOGIN)
+            break;
 
-        {
+        case ChatMessage::MessageType::LOGIN:
 
             std::cout << "Sois " << chatMsg.message << " jugadores\n";
 
             std::cout << "Para empezar partida escriba SI\n";
 
-        }
+            break;
 
-        else if (chatMsg.type == ChatMessage::MessageType::ERROR)
+        case ChatMessage::MessageType::ERROR:
 
             std::cout << "ERROR: letra repetida\n";
 
-        else if (chatMsg.type == ChatMessage::MessageType::NOTURNO)
+            break;
+
+        case ChatMessage::MessageType::NOTURNO:
 
             std::cout << "No es tu turno, espera\n";
 
-        else if (chatMsg.type == ChatMessage::MessageType::TUTURNO)
+            break;
+
+        case ChatMessage::MessageType::TUTURNO:
 
             std::cout << "Es tu turno\n";
 
-        else if (chatMsg.type == ChatMessage::MessageType::SUTURNO)
+            break;
+
+        case ChatMessage::MessageType::SUTURNO:
 
             std::cout << "Es turno de " + chatMsg.nick + "\n";
 
-        else if (chatMsg.type == ChatMessage::MessageType::OCULTA)
+            break;
+
+        case ChatMessage::MessageType::OCULTA:
 
             std::cout << "Palabra Oculta: " << chatMsg.message;
 
-        else if (chatMsg.type == ChatMessage::MessageType::VICTORIA)
+            break;
+
+        case ChatMessage::MessageType::VICTORIA:
 
             std::cout << "Has ganado!!!\nLa palabra era " << chatMsg.message << "\n\n";
 
-        else if (chatMsg.type == ChatMessage::MessageType::DERROTA)
+            break;
+
+        case ChatMessage::MessageType::DERROTA:
 
             std::cout << "Has perdido :(\nHa ganado " << chatMsg.nick << "\nLa palabra era " << chatMsg.message;
 
-        else if (chatMsg.type == ChatMessage::MessageType::NOSTART)
+            break;
+
+        case ChatMessage::MessageType::NOSTART:
 
             std::cout << "No se ha iniciado la partida\nPara iniciarla escriba SI\n";
+
+            break;
+
+        case ChatMessage::MessageType::WAIT:
+
+            std::cout << "Ya hay una partida en curso\nPor favor espere hasta que esta termine\n";
+
+            break;
+
+
+
+        default:
+
+            break;
+
+        }
 
     }
 
 }
-
-
-
