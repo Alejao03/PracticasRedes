@@ -264,7 +264,7 @@ void ChatServer::do_messages()
 
             srand(time(NULL));
 
-            int a = rand() % 60;
+            int a = rand() % 100;
 
             int vuelta = 0;
 
@@ -493,8 +493,10 @@ void ChatServer::do_messages()
                         jugador -= clients.size();
 
 
-
+                    if (turno==clients.size()-1){
                     turno = jugador;
+
+                    }
 
 
 
