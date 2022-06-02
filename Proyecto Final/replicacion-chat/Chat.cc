@@ -170,15 +170,13 @@ void ChatServer::do_messages()
 
                 std::cout << "Jugadores: " << a << "\n";
 
-                if (clients.size() >= 2)
 
-                {
 
-                    msg.message = std::to_string(a);
+                msg.message = std::to_string(a);
 
-                    socket.send(msg, (*clients[0].get()));
+                socket.send(msg, (*clients[0].get()));
 
-                }
+
 
             }
 
@@ -266,7 +264,7 @@ void ChatServer::do_messages()
 
             srand(time(NULL));
 
-            int a = rand() % 100;
+            int a = rand() % 60;
 
             int vuelta = 0;
 
@@ -496,6 +494,10 @@ void ChatServer::do_messages()
 
 
 
+                    turno = jugador;
+
+
+
                     for (int i = 0; i < clients.size(); ++i) {
 
                         if (i == jugador)
@@ -532,13 +534,19 @@ void ChatServer::do_messages()
 
 
 
-                int a = clients.size();
+                if (!empezado)
 
-                msg.message = std::to_string(a);
+                {
 
-                msg.type = ChatMessage::MessageType::LOGIN;
+                    int a = clients.size();
 
-                socket.send(msg, (*clients[0].get()));
+                    msg.message = std::to_string(a);
+
+                    msg.type = ChatMessage::MessageType::LOGIN;
+
+                    socket.send(msg, (*clients[0].get()));
+
+                }
 
             }
 
@@ -936,11 +944,11 @@ void ChatClient::input_thread()
 
         ChatMessage chatMsg(nick, msg);
 
-        if (msg.length() == 1) chatMsg.type = ChatMessage::MessageType::TRY;
+        chatMsg.type = ChatMessage::MessageType::TRY;
 
-        else if (msg == "SI") chatMsg.type = ChatMessage::MessageType::START;
+        if (msg == "SI") chatMsg.type = ChatMessage::MessageType::START;
 
-        else chatMsg.type = ChatMessage::MessageType::LOGOUT;
+        else if (msg == "exit") chatMsg.type = ChatMessage::MessageType::LOGOUT;
 
         socket.send(chatMsg, socket);
 
